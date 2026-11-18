@@ -1,0 +1,564 @@
+// Nejmti — schéma de données Phase 1
+// Source de vérité. Affiner avec validation métier aux phases suivantes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum MerchantStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum ShopStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+}
+
+enum ShopCategory {
+  CAFE
+  RESTAURANT
+  BAKERY
+  HAIR_SALON
+  PHARMACY
+  RETAIL
+  OTHER
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  CASHIER
+}
+
+enum PassPlatform {
+  APPLE
+  GOOGLE
+  WEB
+}
+
+enum PassState {
+  ACTIVE
+  DELETED
+  EXPIRED
+}
+
+enum StampEventType {
+  STAMP
+  REWARD_REDEEMED
+  ADJUSTMENT
+}
+
+enum CampaignTarget {
+  ALL
+  INACTIVE_DAYS
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+enum CreditTransactionType {
+  ALLOCATION
+  PURCHASE
+  SPEND
+  REFUND
+  ADMIN_GRANT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER
+  MANUAL_CASH
+  GATEWAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  DUPLICATE
+}
+
+enum StandOrderStatus {
+  TO_PRINT
+  PRINTED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SUPPORT
+  BILLING
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  DISMISSED
+}
+
+// ─── Auth / Admin ────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           AdminRole @default(SUPPORT)
+  totpSecret     String?
+  totpEnabled    Boolean   @default(false)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  auditLogs      AuditLog[]
+}
+
+model Merchant {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  phone        String?
+  passwordHash String
+  status       MerchantStatus @default(PENDING)
+  locale       String         @default("fr")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  shops        Shop[]
+  auditLogs    AuditLog[]     @relation("MerchantAudit")
+}
+
+// ─── Shop & branding ─────────────────────────────────────────────────────────
+
+model Shop {
+  id                    String        @id @default(cuid())
+  merchantId            String
+  merchant              Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name                  String
+  slug                  String        @unique
+  category              ShopCategory  @default(OTHER)
+  city                  String?
+  address               String?
+  logoUrl               String?
+  primaryColor          String        @default("#0E2A47")
+  secondaryColor        String        @default("#1F5AA6")
+  accentColor           String        @default("#8B5E3C")
+  /// Nombre de tampons requis pour une récompense
+  stampsRequired        Int           @default(10)
+  rewardDescription     String        @default("Une consommation offerte")
+  googleReviewUrl       String?
+  /// Délai minimum (minutes) entre deux tampons pour un même client
+  minStampIntervalMin   Int           @default(120)
+  /// Limite quotidienne de tampons par client (0 = illimité)
+  maxStampsPerDay       Int           @default(1)
+  /// Relance auto inactifs (jours). 0 = désactivé
+  inactiveRelanceDays   Int           @default(15)
+  status                ShopStatus    @default(TRIAL)
+  trialEndsAt           DateTime?
+  nfcInstructionsSeen   Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  locations        ShopLocation[]
+  staffUsers       StaffUser[]
+  customers        Customer[]
+  passes           Pass[]
+  stampEvents      StampEvent[]
+  rewards          Reward[]
+  campaigns        Campaign[]
+  creditWallet     CreditWallet?
+  subscription     Subscription?
+  invoices         Invoice[]
+  standAssets      StandAsset?
+  standOrders      StandOrder[]
+  googleWalletClass GoogleWalletClass?
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([city])
+}
+
+model ShopLocation {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  label        String?
+  latitude     Float
+  longitude    Float
+  /// Distance max (mètres) pour relevantText Apple — défaut 100 m
+  maxDistance  Int      @default(100)
+  relevantText String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([shopId])
+}
+
+model StaffUser {
+  id           String    @id @default(cuid())
+  shopId       String
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name         String
+  role         StaffRole @default(CASHIER)
+  /// PIN haché (jamais en clair)
+  pinHash      String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  stampEvents  StampEvent[]
+
+  @@index([shopId])
+}
+
+// ─── Customers & Passes ──────────────────────────────────────────────────────
+
+model Customer {
+  id                    String    @id @default(cuid())
+  shopId                String
+  shop                  Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  firstName             String?
+  phone                 String?
+  email                 String?
+  consentNotifications  Boolean   @default(false)
+  consentGeolocation    Boolean   @default(false)
+  lastVisitAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  passes                Pass[]
+  rewards               Reward[]
+
+  @@index([shopId])
+  @@index([shopId, phone])
+  @@index([shopId, email])
+  @@index([lastVisitAt])
+}
+
+model Pass {
+  id              String       @id @default(cuid())
+  customerId      String
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shopId          String
+  shop            Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  /// Identifiant Apple / Google / web
+  serialNumber    String       @unique
+  /// Token auth PassKit (header Authorization)
+  authToken       String
+  /// Contenu du QR scanné par le staff (≥ 128 bits entropy)
+  qrToken         String       @unique
+  platform        PassPlatform
+  /// Push token APNs (Apple)
+  pushToken       String?
+  /// Object ID Google Wallet
+  googleObjectId  String?
+  state           PassState    @default(ACTIVE)
+  stampCount      Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  stampEvents          StampEvent[]
+  deviceRegistrations  DeviceRegistration[]
+
+  @@index([shopId])
+  @@index([customerId])
+  @@index([state])
+}
+
+model DeviceRegistration {
+  id                      String   @id @default(cuid())
+  deviceLibraryIdentifier String
+  passTypeId              String
+  serialNumber            String
+  pushToken               String
+  passId                  String
+  pass                    Pass     @relation(fields: [passId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([deviceLibraryIdentifier, passTypeId, serialNumber])
+  @@index([serialNumber])
+  @@index([passId])
+}
+
+model GoogleWalletClass {
+  id        String   @id @default(cuid())
+  shopId    String   @unique
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  classId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Fidélité ────────────────────────────────────────────────────────────────
+
+model StampEvent {
+  id          String         @id @default(cuid())
+  passId      String
+  pass        Pass           @relation(fields: [passId], references: [id], onDelete: Restrict)
+  shopId      String
+  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  staffUserId String?
+  staffUser   StaffUser?     @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  type        StampEventType
+  /// Delta de tampons (+1, -N pour adjustment, 0 pour reward)
+  delta       Int            @default(1)
+  note        String?
+  /// Référence à l'événement annulé (pour ADJUSTMENT)
+  relatedEventId String?
+  createdAt   DateTime       @default(now())
+
+  @@index([passId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([staffUserId])
+}
+
+model Reward {
+  id          String    @id @default(cuid())
+  shopId      String
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  description String
+  stampsUsed  Int
+  redeemedAt  DateTime  @default(now())
+  reviewAsked Boolean   @default(false)
+  reviewAskedAt DateTime?
+
+  @@index([shopId, redeemedAt])
+  @@index([customerId])
+}
+
+// ─── Campagnes & crédits ─────────────────────────────────────────────────────
+
+model Campaign {
+  id             String          @id @default(cuid())
+  shopId         String
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  message        String
+  target         CampaignTarget  @default(ALL)
+  inactiveDays   Int?
+  status         CampaignStatus  @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  sendCount      Int             @default(0)
+  creditCost     Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([shopId, status])
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  shopId    String   @unique
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+  txs       CreditTransaction[]
+}
+
+model CreditTransaction {
+  id          String                @id @default(cuid())
+  walletId    String
+  wallet      CreditWallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type        CreditTransactionType
+  amount      Int
+  balanceAfter Int
+  reference   String?
+  note        String?
+  createdAt   DateTime              @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+// ─── Facturation ─────────────────────────────────────────────────────────────
+
+model Plan {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  description     String?
+  monthlyPrice    Decimal  @db.Decimal(12, 3)
+  currency        String   @default("TND")
+  messageQuota    Int      @default(100)
+  maxLocations    Int      @default(1)
+  maxStaff        Int      @default(3)
+  features        Json?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  subscriptions   Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  shopId             String             @unique
+  shop               Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               Plan               @relation(fields: [planId], references: [id])
+  status             SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  /// Jours de grâce après échéance avant suspension
+  graceDays          Int                @default(7)
+  cancelAtPeriodEnd  Boolean            @default(false)
+  cancelledAt        DateTime?
+  discountPercent    Int                @default(0)
+  discountNote       String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  invoices           Invoice[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  shopId        String
+  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  subscriptionId String?
+  subscription  Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  amount        Decimal       @db.Decimal(12, 3)
+  currency      String        @default("TND")
+  status        InvoiceStatus @default(OPEN)
+  periodStart   DateTime
+  periodEnd     DateTime
+  dueAt         DateTime
+  paidAt        DateTime?
+  pdfUrl        String?
+  paymentUrl    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  payments      Payment[]
+
+  @@index([shopId, status])
+  @@index([dueAt])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  amount          Decimal       @db.Decimal(12, 3)
+  currency        String        @default("TND")
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  /// Clé d'idempotence webhook / admin
+  idempotencyKey  String        @unique
+  gatewayRef      String?
+  gatewayPayload  Json?
+  validatedByAdminId String?
+  validatedAt     DateTime?
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([invoiceId])
+  @@index([status])
+}
+
+// ─── Stands / QR ─────────────────────────────────────────────────────────────
+
+model StandAsset {
+  id          String   @id @default(cuid())
+  shopId      String   @unique
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  qrSvgUrl    String?
+  qrPngUrl    String?
+  pdfA6Url    String?
+  pdfStickerUrl String?
+  publicUrl   String
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model StandOrder {
+  id          String           @id @default(cuid())
+  shopId      String
+  shop        Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  status      StandOrderStatus @default(TO_PRINT)
+  quantity    Int              @default(1)
+  note        String?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([status])
+}
+
+// ─── Leads marketing & audit ─────────────────────────────────────────────────
+
+model Lead {
+  id          String     @id @default(cuid())
+  businessName String
+  contactName String?
+  email       String
+  phone       String?
+  city        String?
+  message     String?
+  status      LeadStatus @default(NEW)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorType   String
+  actorId     String?
+  adminUserId String?
+  adminUser   AdminUser?  @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  merchantId  String?
+  merchant    Merchant?   @relation("MerchantAudit", fields: [merchantId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String?
+  entityId    String?
+  meta        Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entityType, entityId])
+}

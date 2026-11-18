@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+secrets/
+*.p12
+*.pem
+*.key
+google-credentials.json
+AppleWWDR*.cer
+pass-certificates/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs & runtime
+logs/
+*.log
+tmp/
+.turbo/
+playwright-report/
+test-results/
+
+# Docker volumes
+infra/data/
+
+# Vercel
+.vercel/
+
+# Local crop helpers
+apps/web/public/images/hero/crop_stand.py

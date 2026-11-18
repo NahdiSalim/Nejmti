@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+:root {
+  --nejmti-night: #1f2a2e;
+  --nejmti-lagoon: #4db6ac;
+  --nejmti-sky: #66c2b2;
+  --nejmti-mist: #e8f6f4;
+  --nejmti-white: #ffffff;
+  --nejmti-hazelnut: #2a9a8f;
+  --nejmti-sand: #f7faf9;
+  --nejmti-slate: #6b7c85;
+  --nejmti-success: #2e9d6b;
+  --nejmti-warning: #d98e04;
+  --nejmti-danger: #c8443a;
+  --nejmti-teal: #4db6ac;
+  --nejmti-teal-deep: #2a9a8f;
+  --nejmti-radius-sm: 12px;
+  --nejmti-radius-md: 16px;
+  --nejmti-radius-lg: 24px;
+  --nejmti-shadow-soft: 0 8px 30px rgba(31, 42, 46, 0.08);
+  --nejmti-shadow-lift: 0 18px 50px rgba(45, 154, 143, 0.22);
+  --nejmti-shadow-phone: 0 25px 60px rgba(31, 42, 46, 0.18);
+  --background: var(--nejmti-white);
+  --foreground: var(--nejmti-night);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-night: var(--nejmti-night);
+  --color-lagoon: var(--nejmti-lagoon);
+  --color-sky: var(--nejmti-sky);
+  --color-mist: var(--nejmti-mist);
+  --color-hazelnut: var(--nejmti-hazelnut);
+  --color-sand: var(--nejmti-sand);
+  --color-slate: var(--nejmti-slate);
+  --color-success: var(--nejmti-success);
+  --color-warning: var(--nejmti-warning);
+  --color-danger: var(--nejmti-danger);
+  --color-teal: var(--nejmti-teal);
+  --color-teal-deep: var(--nejmti-teal-deep);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --radius-nejmti-sm: var(--nejmti-radius-sm);
+  --radius-nejmti-md: var(--nejmti-radius-md);
+  --radius-nejmti-lg: var(--nejmti-radius-lg);
+  --shadow-soft: var(--nejmti-shadow-soft);
+  --shadow-lift: var(--nejmti-shadow-lift);
+  --shadow-phone: var(--nejmti-shadow-phone);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Offset for fixed navbar when jumping to sections */
+[id='fonctionnement'],
+[id='tarifs'],
+[id='contact'] {
+  scroll-margin-top: 5.5rem;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+/* Hero teal with soft organic blobs */
+.hero-teal {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(255, 255, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 10%, rgba(255, 255, 255, 0.12), transparent 50%),
+    linear-gradient(160deg, #66c2b2 0%, #4db6ac 48%, #3aa99e 100%);
+}
+
+.hero-dots::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.35) 1.5px, transparent 2px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 2px);
+  background-size: 48px 48px, 72px 72px;
+  background-position: 12px 20px, 36px 8px;
+  opacity: 0.45;
+  mask-image: linear-gradient(to bottom, black 40%, transparent 95%);
+}
+
+/* Wave divider teal → white */
+.wave-divider {
+  display: block;
+  width: 100%;
+  height: clamp(64px, 12vw, 140px);
+  margin-top: -1px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes stamp-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 220ms ease-out both;
+}
+
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-y 7.5s ease-in-out 0.8s infinite;
+}
+
+.animate-stamp-pop {
+  animation: stamp-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(12px, -10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 4.5s ease-in-out infinite;
+}
+
+.animate-drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+.animate-drift-delayed {
+  animation: drift 11s ease-in-out 1.2s infinite;
+}
+
+.lift-card {
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.2, 0.64, 1),
+    box-shadow 280ms ease,
+    border-color 280ms ease;
+}
+
+.lift-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--nejmti-shadow-lift);
+}
+
+.section-blob {
+  background:
+    radial-gradient(ellipse 50% 60% at 0% 50%, rgba(77, 182, 172, 0.12), transparent 60%),
+    radial-gradient(ellipse 40% 50% at 100% 20%, rgba(102, 194, 178, 0.1), transparent 55%);
+}
+
+.footer-mesh {
+  background:
+    radial-gradient(ellipse 60% 80% at 15% 20%, rgba(255, 255, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 50% 60% at 90% 80%, rgba(42, 154, 143, 0.45), transparent 50%),
+    linear-gradient(165deg, #4db6ac 0%, #2a9a8f 55%, #21867c 100%);
+}
+
+/* Hero phone — light 3D tilt + jump (single front device) */
+.hero-phone-scene {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.hero-phone-orbit.is-animated {
+  animation: hero-phone-rotate 9s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.hero-phone-jump.is-animated {
+  animation: hero-phone-jump 4.5s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.hero-phone-device {
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 22px 32px rgba(15, 23, 42, 0.28));
+}
+
+.stand-float {
+  animation: stand-soft-float 5.5s ease-in-out infinite;
+}
+
+@keyframes hero-phone-rotate {
+  0%,
+  100% {
+    transform: rotateY(-4deg) rotateZ(-0.6deg);
+  }
+  50% {
+    transform: rotateY(5deg) rotateZ(0.6deg);
+  }
+}
+
+@keyframes hero-phone-jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes stand-soft-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-float,
+  .animate-float-delayed,
+  .animate-stamp-pop,
+  .animate-pulse-soft,
+  .animate-drift,
+  .animate-drift-delayed,
+  .hero-phone-orbit.is-animated,
+  .hero-phone-jump.is-animated,
+  .stand-float {
+    animation: none;
+  }
+
+  .lift-card:hover {
+    transform: none;
+  }
+}

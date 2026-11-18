@@ -1,0 +1,29 @@
+{
+  "name": "nejmti",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nejmti — cartes de fidélité numériques pour commerces locaux (Apple Wallet / Google Wallet)",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @nejmti/web --filter @nejmti/api run dev",
+    "dev:web": "pnpm --filter @nejmti/web dev",
+    "dev:api": "pnpm --filter @nejmti/api dev",
+    "build": "pnpm --filter @nejmti/web build",
+    "build:all": "pnpm -r run build",
+    "start:web": "pnpm --filter @nejmti/web start",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "db:generate": "pnpm --filter @nejmti/database generate",
+    "db:migrate": "pnpm --filter @nejmti/database migrate",
+    "db:studio": "pnpm --filter @nejmti/database studio",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yml}\"",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

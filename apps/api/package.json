@@ -1,0 +1,20 @@
+{
+  "name": "@nejmti/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API NestJS Nejmti — stub Phase 1 (implémentation Phase 2+)",
+  "scripts": {
+    "dev": "echo \"API stub Phase 1 — démarrage réel à la Phase 2\" && exit 0",
+    "build": "echo \"skip\"",
+    "lint": "echo \"skip\"",
+    "test": "echo \"skip\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nejmti/database": "workspace:*",
+    "@nejmti/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

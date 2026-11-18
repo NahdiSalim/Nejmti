@@ -1,0 +1,8 @@
+apps/api
+infra
+docs
+**/*.test.ts
+**/crop_stand.py
+apps/web/public/images/hero/stand-source.png
+apps/web/public/images/hero/stand-qr.jpeg
+apps/web/public/images/hero/stand-device.png
